@@ -5,14 +5,16 @@ import matplotlib.pyplot as plt
 import math
 
 st.set_page_config(layout="centered")
-st.title("Garage Tile Designer Final")
+st.title("Garage Tile Designer Final v3.13 - Clickable Grid con botones")
 
 # 1. Unidad y medidas
 unidad = st.selectbox("Selecciona la unidad de medida", ["metros", "centímetros"], key="unidad")
 factor = 1 if unidad == "metros" else 0.01
 min_val = 1.0 if unidad == "metros" else 10.0
-ancho_input = st.number_input(f"Ancho del espacio ({unidad})", min_value=min_val, value=4.0 if unidad == "metros" else 400.0, step=1.0)
-largo_input = st.number_input(f"Largo del espacio ({unidad})", min_value=min_val, value=6.0 if unidad == "metros" else 600.0, step=1.0)
+ancho_input = st.number_input(f"Ancho del espacio ({unidad})", min_value=min_val,
+                              value=4.0 if unidad == "metros" else 400.0, step=1.0)
+largo_input = st.number_input(f"Largo del espacio ({unidad})", min_value=min_val,
+                              value=6.0 if unidad == "metros" else 600.0, step=1.0)
 ancho_m = ancho_input * factor
 largo_m = largo_input * factor
 area_m2 = round(ancho_m * largo_m, 2)
@@ -21,7 +23,8 @@ st.markdown(f"**Área total:** {area_m2} m²")
 # 2. Bordillos y esquineros
 incluir_bordillos = st.checkbox("Agregar bordillos", value=True)
 incluir_esquineros = st.checkbox("Agregar esquineros", value=True)
-pos_bord = st.multiselect("¿Dónde colocar bordillos?", ["Arriba","Abajo","Izquierda","Derecha"], default=["Arriba","Abajo","Izquierda","Derecha"])
+pos_bord = st.multiselect("¿Dónde colocar bordillos?", ["Arriba","Abajo","Izquierda","Derecha"],
+                          default=["Arriba","Abajo","Izquierda","Derecha"])
 
 # 3. Colores y base
 colores = {
@@ -31,65 +34,65 @@ colores = {
 lista_colores = list(colores.keys())
 color_base = st.selectbox("Color base", lista_colores, index=lista_colores.index("Blanco"))
 
-# 4. Inicializar DataFrame
+# 4. Inicializar o actualizar DataFrame
+def init_df():
+    cols = math.ceil(ancho_m / 0.4)
+    rows = math.ceil(largo_m / 0.4)
+    return pd.DataFrame([[color_base] * cols for _ in range(rows)])
+
 cols = math.ceil(ancho_m / 0.4)
 rows = math.ceil(largo_m / 0.4)
 if 'df' not in st.session_state or st.session_state.df.shape != (rows, cols):
-    st.session_state.df = pd.DataFrame([[color_base] * cols for _ in range(rows)])
-
+    st.session_state.df = init_df()
 df = st.session_state.df
 
-# 5. Botón aplicar color base
-if st.button("Aplicar color base"):
-    st.session_state.df = pd.DataFrame([[color_base] * cols for _ in range(rows)])
+# Botón aplicar color base\ nif st.button("Aplicar color base"):
+    st.session_state.df = init_df()
     df = st.session_state.df
 
-# 6. Diseño personalizado con botones
+# 5. Diseño personalizado con botones
 st.subheader("Diseño personalizado: haz clic en cada celda")
 for r in range(rows):
     cols_ui = st.columns(cols)
     for c, col_ui in enumerate(cols_ui):
         cell_color = df.iat[r, c]
         hexcol = colores[cell_color]
-        # Botón invisible para clic
-        if col_ui.button(" ", key=f"btn_{r}_{c}"):
-            df.iat[r, c] = color_base
-            st.session_state.df = df
+        # Botón transparente
+        if col_ui.button("", key=f"btn_{r}_{c}"):
+            st.session_state.df.iat[r, c] = color_base
         # Mostrar celda coloreada
         col_ui.markdown(
-            f"""<div style='width:30px; height:30px; background:{hexcol}; border:1px solid {'white' if color_base=='Negro' else 'black'}; margin-top:-30px;'></div>""",
+            f"""
+            <div style='
+                width: 30px;
+                height: 30px;
+                background: {hexcol};
+                border: 1px solid {'white' if color_base == 'Negro' else 'black'};
+                margin-top: -30px;
+            '></div>
+            """,
             unsafe_allow_html=True
         )
 
-# 7. Renderización final con Matplotlib
-fig, ax = plt.subplots(figsize=(cols/5, rows/5))
+# 6. Renderizado final con Matplotlib
+fig, ax = plt.subplots(figsize=(cols / 5, rows / 5))
 for y in range(rows):
     for x in range(cols):
-        color = colores.get(df.iat[y, x], "#FFFFFF")
-        edge = 'white' if color_base=='Negro' else 'black'
-        ax.add_patch(plt.Rectangle((x, rows-1-y), 1, 1, facecolor=color, edgecolor=edge))
-# Bordillos
+        color = colores.get(st.session_state.df.iat[y, x], "#FFFFFF")
+        edge = 'white' if color_base == 'Negro' else 'black'
+        ax.add_patch(plt.Rectangle((x, rows - 1 - y), 1, 1, facecolor=color, edgecolor=edge))
+# Bordillos y esquineros
 if incluir_bordillos:
     if "Arriba" in pos_bord: ax.add_patch(plt.Rectangle((0, rows), cols, 0.15, facecolor="black"))
     if "Abajo" in pos_bord: ax.add_patch(plt.Rectangle((0, -0.15), cols, 0.15, facecolor="black"))
     if "Izquierda" in pos_bord: ax.add_patch(plt.Rectangle((-0.15, 0), 0.15, rows, facecolor="black"))
     if "Derecha" in pos_bord: ax.add_patch(plt.Rectangle((cols, 0), 0.15, rows, facecolor="black"))
-# Esquineros
 if incluir_esquineros:
-    s = 0.15
+    side = 0.15
     for (x, y) in [(0,0),(0,rows),(cols,0),(cols,rows)]:
-        ax.add_patch(plt.Rectangle((x-s/2, y-s/2), s, s, facecolor="black"))
-ax.set_xlim(-0.5, cols+0.5)
-ax.set_ylim(-0.5, rows+0.5)
+        ax.add_patch(plt.Rectangle((x - side/2, y - side/2), side, side, facecolor="black"))
+ax.set_xlim(-0.5, cols + 0.5)
+ax.set_ylim(-0.5, rows + 0.5)
 ax.set_aspect('equal')
 ax.axis('off')
 st.pyplot(fig)
-
-# 8. Conteo material
-total = rows * cols
-bord_count = sum([cols if side in ["Arriba","Abajo"] else rows for side in pos_bord]) - 2*len(pos_bord)
-esq_count = 4 if incluir_esquineros else 0
-st.markdown(f"**Total palmetas:** {total}")
-st.markdown(f"**Bordillos:** {bord_count}")
-st.markdown(f"**Esquineros:** {esq_count}")
-st.markdown(f"**Dimensiones (palmetas):** {cols} x {rows}")
