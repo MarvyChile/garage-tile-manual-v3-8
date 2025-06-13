@@ -7,7 +7,7 @@ import math
 from streamlit_drawable_canvas import st_canvas
 
 st.set_page_config(layout="centered")
-st.title("Garage Tile Designer v3.8 - Clickable Grid")
+st.title("Garage Tile Designer v3.9 - Clickable Grid")
 
 # 1. Unidad y medidas
 unidad = st.selectbox("Selecciona la unidad de medida", ["metros", "centímetros"], key="unidad")
@@ -22,7 +22,8 @@ st.markdown(f"**Área total:** {area_m2} m²")
 # 2. Bordillos y esquineros
 bord = st.checkbox("Agregar bordillos", True)
 esq = st.checkbox("Agregar esquineros", True)
-pos_b = st.multiselect("Dónde bordillos?", ["Arriba","Abajo","Izquierda","Derecha"], default=["Arriba","Abajo","Izquierda","Derecha"])
+pos_b = st.multiselect("Dónde bordillos?", ["Arriba","Abajo","Izquierda","Derecha"],
+                       default=["Arriba","Abajo","Izquierda","Derecha"])
 
 # 3. Colores y base
 colores = {"Blanco":"#FFFFFF","Negro":"#000000","Gris":"#B0B0B0","Gris Oscuro":"#4F4F4F",
@@ -48,8 +49,8 @@ canvas_res = st_canvas(
     height=canvas_size,
     width=canvas_size,
     drawing_mode="rect",
-    key="canvas",
-    clear_on_update=True  # limpia canvas tras cada acción
+    update_streamlit=True,
+    key="canvas"
 )
 
 # Procesa dibujo
@@ -59,6 +60,8 @@ if canvas_res.json_data and 'objects' in canvas_res.json_data:
         c = int(left//cell_w); r = int(top//cell_h)
         if r<rows and c<cols:
             df.iat[rows-1-r,c] = base
+    # limpiar objetos procesados
+    canvas_res.json_data["objects"].clear()
     st.session_state.df = df
 
 # 6. Mostrar gráfico final
