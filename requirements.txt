@@ -3,5 +3,4 @@ streamlit
 pandas
 numpy
 matplotlib
-plotly
-streamlit-plotly-events
+streamlit-aggrid
